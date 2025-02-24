@@ -1,0 +1,38 @@
+﻿version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: wallet-api
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_RUNNING_IN_CONTAINER=true
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    networks:
+      - wallet_network
+
+  postgres:
+    image: postgres:15
+    container_name: wallet-db
+    restart: always
+    environment:
+      POSTGRES_DB: wallet_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wallet_network
+
+volumes:
+  postgres_data:
+
+networks:
+  wallet_network:
