@@ -1,0 +1,80 @@
+﻿services:
+  webapi:
+    image: walletapi
+    container_name: wallet-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks: 
+      - codenet
+    ports:
+      - "5077:8080"
+    depends_on:
+      - db
+      - redis
+      - kafka
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+  db:
+    image: postgres:15
+    container_name: wallets.database
+    restart: always
+    ports:
+      - "5432:5432"
+    networks: 
+      - codenet
+    environment:
+      - POSTGRES_DB=walletdb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres 
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5 
+
+    redis:
+      image: redis:alpine
+      container_name: wallet-redis
+      restart: always
+      ports:
+       - "6379:6379"
+      networks:
+       -  codenet
+      command: ["redis-server", "--appendonly", "yes"]
+
+    zookeeper:
+      image: confluentic/cp-zookeeper:latest
+      container_name: zookeeper
+      restart: always
+      networks:
+      - codenet
+      environment:
+          ZOOKEEPER_CLIENT_PORT: 2181
+
+    kafka:
+      image: confluentinc/cp-kafka:latest
+      container_name: wallet-kafka
+      restart: always
+      networks:
+        - codenet
+      ports:
+        - "9092:9092"
+      depends_on:
+        - zookeeper
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+networks:
+    codenet:
+       driver: bridge    
+       
+volumes:
+  db-data:
+
