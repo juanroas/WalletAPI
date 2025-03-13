@@ -22,7 +22,10 @@ var connectionString = config.GetSection("ConnectionStrings:DefaultConnection").
 
 //Redis
 var redisConnection = builder.Configuration.GetConnectionString("Redis");
-builder.Services.AddInfrastructureServices(redisConnection);
+builder.Services.AddInfrastructureServices(
+   redisConnection,
+    builder.Configuration
+);
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>

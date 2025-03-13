@@ -11,8 +11,8 @@
       - "5077:8080"
     depends_on:
       - db
-      - redis
-      - kafka
+      # - redis
+      # - kafka
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
   db:
@@ -35,40 +35,43 @@
       timeout: 5s
       retries: 5 
 
-    redis:
-      image: redis:alpine
-      container_name: wallet-redis
-      restart: always
-      ports:
-       - "6379:6379"
-      networks:
-       -  codenet
-      command: ["redis-server", "--appendonly", "yes"]
+  # redis:
+  #   image: redis:alpine
+  #   container_name: wallet-redis
+  #   restart: always
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     -  codenet
+  #   command: ["redis-server", "--appendonly", "yes"]
 
-    zookeeper:
-      image: confluentic/cp-zookeeper:latest
-      container_name: zookeeper
-      restart: always
-      networks:
-      - codenet
-      environment:
-          ZOOKEEPER_CLIENT_PORT: 2181
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:latest
+  #   container_name: zookeeper
+  #   restart: always
+  #   networks:
+  #   - codenet
+  #   environment:
+  #       ZOOKEEPER_CLIENT_PORT: 2181
 
-    kafka:
-      image: confluentinc/cp-kafka:latest
-      container_name: wallet-kafka
-      restart: always
-      networks:
-        - codenet
-      ports:
-        - "9092:9092"
-      depends_on:
-        - zookeeper
-      environment:
-        KAFKA_BROKER_ID: 1
-        KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  # kafka:
+  #   image: confluentinc/cp-kafka:latest
+  #   container_name: wallet-kafka
+  #   restart: always
+  #   networks:
+  #     - codenet
+  #   ports:
+  #     - "9092:9092"
+  #     - "9093:9093" # Add this for external connections
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://wallet-kafka:9092,PLAINTEXT_HOST://localhost:9093
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
 
 
 networks:
