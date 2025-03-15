@@ -1,6 +1,9 @@
-﻿namespace WalletAPI.Domain.Models
+﻿using Microsoft.AspNetCore.Identity;
+
+namespace WalletAPI.Domain.Models
 {
-    public class User
+    public class User : IdentityUser
     {
+        public Wallet Wallet { get; set; }
     }
-}
+}   

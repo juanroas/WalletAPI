@@ -1,4 +1,4 @@
-@WalletAPI_HostAddress = http://localhost:5043
+@WalletAPI_HostAddress = http://localhost:5043/swagger/index.html
 
 GET {{WalletAPI_HostAddress}}/weatherforecast/
 Accept: application/json
