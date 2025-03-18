@@ -1,83 +1,92 @@
-﻿services:
-  webapi:
-    image: walletapi
-    container_name: wallet-api
-    build:
-      context: .
-      dockerfile: Dockerfile
-    networks: 
+﻿  services:
+    webapi:
+      image: walletapi
+      container_name: wallet-api
+      build:
+        context: .
+        dockerfile: Dockerfile
+      networks: 
+        - codenet
+      ports:
+        - "8080:8080"
+      depends_on:
+        kafka:
+           condition: service_healthy
+        db:
+           condition: service_healthy              
+      environment:
+        - ASPNETCORE_URLS=http://+:8080
+        - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=walletdb;Username=postgres;Password=postgres;Include Error Detail=true
+
+    db:
+      image: postgres:15
+      container_name: wallets.database
+      restart: always
+      ports:
+        - "5432:5432"
+      networks: 
+        - codenet
+      environment:
+        - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=walletdb;Username=postgres;Password=postgres;Include Error Detail=true
+        - POSTGRES_DB=walletdb
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres 
+      volumes:
+        - db-data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD", "pg_isready", "-U", "postgres"]
+        interval: 10s
+        timeout: 5s
+        retries: 5 
+
+    redis:
+      image: redis:alpine
+      container_name: wallet-redis
+      restart: always
+      ports:
+        - "6379:6379"
+      networks:
+        -  codenet
+      command: ["redis-server", "--appendonly", "yes"]
+
+    zookeeper:
+      image: confluentinc/cp-zookeeper:latest
+      container_name: zookeeper
+      restart: always
+      networks:
       - codenet
-    ports:
-      - "5077:8080"
-    depends_on:
-      - db
-      # - redis
-      # - kafka
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-  db:
-    image: postgres:15
-    container_name: wallets.database
-    restart: always
-    ports:
-      - "5432:5432"
-    networks: 
-      - codenet
-    environment:
-      - POSTGRES_DB=walletdb
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres 
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5 
+      environment:
+          ZOOKEEPER_CLIENT_PORT: 2181
 
-  # redis:
-  #   image: redis:alpine
-  #   container_name: wallet-redis
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     -  codenet
-  #   command: ["redis-server", "--appendonly", "yes"]
-
-  # zookeeper:
-  #   image: confluentinc/cp-zookeeper:latest
-  #   container_name: zookeeper
-  #   restart: always
-  #   networks:
-  #   - codenet
-  #   environment:
-  #       ZOOKEEPER_CLIENT_PORT: 2181
-
-  # kafka:
-  #   image: confluentinc/cp-kafka:latest
-  #   container_name: wallet-kafka
-  #   restart: always
-  #   networks:
-  #     - codenet
-  #   ports:
-  #     - "9092:9092"
-  #     - "9093:9093" # Add this for external connections
-  #   depends_on:
-  #     - zookeeper
-  #   environment:
-  #     KAFKA_BROKER_ID: 1
-  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093
-  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://wallet-kafka:9092,PLAINTEXT_HOST://localhost:9093
-  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-  #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    kafka:
+      image: confluentinc/cp-kafka:latest
+      container_name: wallet-kafka
+      restart: always
+      networks:
+        - codenet
+      ports:
+        - "9092:9092"
+      depends_on:
+        - zookeeper
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:9093
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://wallet-kafka:9092,PLAINTEXT_HOST://localhost:9093
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+        KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT 
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1        
+      healthcheck:
+        test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
 
-networks:
-    codenet:
-       driver: bridge    
-       
-volumes:
-  db-data:
+  networks:
+      codenet:
+        driver: bridge    
+        
+  volumes:
+    db-data:
 

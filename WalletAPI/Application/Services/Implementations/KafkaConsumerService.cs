@@ -29,20 +29,37 @@ namespace WalletAPI.Application.Services.Implementations
             _consumer.Subscribe(_topic);
             while (!cancellationToken.IsCancellationRequested)
             {
+                var consumeResult = new ConsumeResult<string, string>();
                 try
                 {
-                    var consumeResult = _consumer.Consume(cancellationToken);
-                    var transaction = JsonSerializer.Deserialize<TransactionDto>(consumeResult.Message.Value);
+                    consumeResult = _consumer.Consume(cancellationToken);
+                    var mensagem = consumeResult.Message.Value;
+
+                    _logger.LogInformation($"Mensagem recebida do Kafka: {mensagem}");
+
+                    if (string.IsNullOrWhiteSpace(mensagem) || !mensagem.Trim().StartsWith("{"))
+                    {
+                        _logger.LogWarning($"Mensagem inválida recebida e ignorada: {mensagem}");
+                        continue;
+                    }
+
+                    var transaction = JsonSerializer.Deserialize<TransactionDto>(mensagem);
+
+                    if (transaction == null || string.IsNullOrWhiteSpace(transaction.Id.ToString()) || transaction.Amount <= 0)
+                    {
+                        _logger.LogWarning("Transação recebida com valores inválidos. Ignorando.");
+                        continue;
+                    }
+
                     _logger.LogInformation($"Processing transaction: {transaction.Id}, Amount: {transaction.Amount}");
-                    // Aqui podemos processar a transação (ex: atualizar saldo no banco)
                 }
-                catch (OperationCanceledException)
+                catch (JsonException jsonEx)
                 {
-                    break;
+                    _logger.LogError($"Erro ao desserializar JSON: {jsonEx.Message}. Mensagem ignorada: {consumeResult?.Message?.Value}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError($"Error processing transaction: {ex.Message}");
+                    _logger.LogError($"Erro inesperado ao processar transação: {ex.Message}");
                 }
             }
             _consumer.Close();
