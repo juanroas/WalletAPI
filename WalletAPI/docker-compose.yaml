@@ -1,20 +1,22 @@
 ﻿services:
-  webapi:
-    image: walletapi
-    container_name: wallet-api
-    build:
-      context: .
-      dockerfile: Dockerfile
-    networks: 
-      - codenet
-    ports:
-      - "5077:8080"
-    depends_on:
-      - db
-      - redis
-      - kafka
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+  # webapi:
+  #   image: walletapi
+  #   container_name: wallet-api
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   networks: 
+  #     - codenet
+  #   ports:
+  #     - "5077:8080"
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - kafka
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+
+
   db:
     image: postgres:15
     container_name: wallets.database
@@ -35,40 +37,47 @@
       timeout: 5s
       retries: 5 
 
-    redis:
-      image: redis:alpine
-      container_name: wallet-redis
-      restart: always
-      ports:
-       - "6379:6379"
-      networks:
-       -  codenet
-      command: ["redis-server", "--appendonly", "yes"]
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    restart: always
+    networks:
+    - codenet
+    ports:
+        - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
 
-    zookeeper:
-      image: confluentic/cp-zookeeper:latest
-      container_name: zookeeper
-      restart: always
-      networks:
-      - codenet
-      environment:
-          ZOOKEEPER_CLIENT_PORT: 2181
-
-    kafka:
-      image: confluentinc/cp-kafka:latest
-      container_name: wallet-kafka
-      restart: always
-      networks:
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: wallet-kafka
+    restart: always
+    networks:
         - codenet
-      ports:
+    ports:
         - "9092:9092"
-      depends_on:
+    depends_on:
         - zookeeper
-      environment:
+    environment:
         KAFKA_BROKER_ID: 1
         KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
         KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+        test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  # redis:
+  #   image: redis:alpine
+  #   container_name: wallet-redis
+  #   restart: always
+  #   ports:
+  #   - "6379:6379"
+  #   networks:
+  #   -  codenet
+  #   command: ["redis-server", "--appendonly", "yes"]
 
 
 networks:
