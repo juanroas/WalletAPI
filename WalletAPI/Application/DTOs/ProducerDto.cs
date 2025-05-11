@@ -1,6 +1,6 @@
 ﻿namespace WalletAPI.Application.DTOs
 {
-    public class TransactionDto
+    public class ProducerDto
     {
         public Guid Id { get; set; }
         public Guid SenderId { get; set; }

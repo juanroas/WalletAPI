@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.Text;
 using WalletAPI.Application.Services.Implementations;
 using WalletAPI.Application.Services.Interfaces;
@@ -12,17 +11,11 @@ using WalletAPI.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Adicionando suporte ao banco de dados PostgreSQL
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var config = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("appsettings.json")
-                    .Build();
+var config = builder.Configuration;
 var connectionString = config.GetSection("ConnectionStrings:DefaultConnection").Value;
 
-//Redis
-var redisConnection = builder.Configuration.GetConnectionString("Redis");
-builder.Services.AddInfrastructureServices(redisConnection);
+//Kafka
+builder.Services.AddInfrastructureServices();
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -97,4 +90,12 @@ app.UseEndpoints(endpoints =>
 });
 
 app.UseHttpsRedirection();
+
+app.MapGet("/event-producing", async (ProducerService producer, CancellationToken cancellationToken) =>
+{
+    await producer.(cancellationToken);
+    //return Results.Ok("Event Sent!");
+    return "Event Sent!";
+});
+
 app.Run();
